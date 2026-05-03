@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Deals" />
+<title>Deal Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F2;
+    --surface: #FFFFFF;
+    --border: #E8E4DF;
+    --text: #1A1714;
+    --muted: #8C8580;
+    --accent: #C8522A;
+    --accent-light: #F5EDE8;
+    --accent2: #2A6B5E;
+    --accent2-light: #E8F2F0;
+    --gold: #B8960C;
+    --gold-light: #FBF7E8;
+    --nav-h: 72px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: calc(var(--nav-h) + var(--safe-bottom));
+    overscroll-behavior: none;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+  .topbar-inner { display: flex; justify-content: space-between; align-items: center; }
+  .topbar h1 { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.3px; }
+  .topbar .add-btn {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .topbar .add-btn:active { transform: scale(0.92); background: #a8431d; }
+
+  /* ── YTD BANNER ── */
+  .ytd-banner {
+    margin: 16px 16px 0;
+    background: var(--text);
+    color: white;
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ytd-banner .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.6; }
+  .ytd-banner .amount { font-family: 'DM Serif Display', serif; font-size: 26px; }
+  .ytd-banner .sub { font-size: 12px; opacity: 0.5; margin-top: 2px; }
+
+  /* ── SECTION ── */
+  .section-header {
+    padding: 20px 16px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .section-header .count {
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  /* ── SORT ROW ── */
+  .sort-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+  }
+  .sort-row select {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  /* ── SEARCH ── */
+  .search-wrap { padding: 0 16px 12px; }
+  .search-wrap input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .search-wrap input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── DEAL CARD ── */
+  .card {
+    margin: 0 16px 12px;
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: transform 0.15s;
+  }
+  .card:active { transform: scale(0.99); }
+
+  .card-accent-bar { height: 4px; }
+
+  .card-body { padding: 14px 16px 12px; }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .card-client { font-family: 'DM Serif Display', serif; font-size: 17px; line-height: 1.2; }
+  .card-type {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-left: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .type-buyer { background: var(--accent2-light); color: var(--accent2); }
+  .type-seller { background: var(--accent-light); color: var(--accent); }
+
+  .card-address { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+
+  .card-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+  .card-meta-item { font-size: 12px; }
+  .card-meta-item .meta-label { color: var(--muted); font-size: 11px; display: block; }
+  .card-meta-item .meta-val { font-weight: 500; font-size: 14px; }
+
+  /* Status chips */
+  .status-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .status-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .status-chip.active-chip { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+  .status-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  /* Card actions */
+  .card-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .card-btn {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .card-btn:active { background: var(--border); }
+  .card-btn.danger { color: #C0392B; border-color: #f5c6c2; }
+  .card-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Notes */
+  .card-notes {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  /* Closed extras */
+  .closed-meta {
+    background: var(--gold-light);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .closed-meta .cm-label { font-size: 11px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.6px; }
+  .closed-meta .cm-val { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding-bottom: var(--safe-bottom);
+    z-index: 100;
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+    transition: color 0.15s;
+    padding-bottom: 4px;
+  }
+  .nav-tab.active { color: var(--accent); }
+  .nav-tab svg { width: 22px; height: 22px; }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── SHEET (MODAL) ── */
+  .sheet-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+  }
+  .sheet-overlay.open { display: flex; }
+  .sheet {
+    background: var(--surface);
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    overflow-y: auto;
+    padding: 0 20px 40px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .sheet-overlay.open .sheet { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 12px auto 20px;
+  }
+  .sheet h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  /* Form fields */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .field textarea { min-height: 80px; resize: vertical; }
+
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  /* Checkbox group */
+  .check-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .check-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .check-pill input { display: none; }
+  .check-pill.checked { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+  /* Sheet buttons */
+  .sheet-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .sheet-actions button {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-save { background: var(--accent); color: white; }
+  .btn-save:active { background: #a8431d; }
+  .btn-cancel { background: var(--bg); color: var(--muted); }
+
+  /* ── CONFIRM SHEET ── */
+  .confirm-sheet {
+    background: var(--surface);
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 40px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .sheet-overlay.open .confirm-sheet { transform: translateY(0); }
+  .confirm-sheet h3 { font-family: 'DM Serif Display', serif; font-size: 20px; margin-bottom: 8px; }
+  .confirm-sheet p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+  }
+  .empty .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  /* Sync indicator */
+  .sync-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    display: inline-block;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .sync-dot.syncing { background: var(--gold); animation: pulse 1s infinite; }
+  .sync-dot.synced { background: var(--accent2); }
+  .sync-dot.error { background: #C0392B; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Color dot in card */
+  .color-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 20px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <h1>Deals <span class="sync-dot" id="syncDot"></span></h1>
+    <button class="add-btn" onclick="openAddSheet()" aria-label="Add Deal">+</button>
+  </div>
+</div>
+
+<!-- VIEWS -->
+<div id="viewActive" class="view active">
+  <div class="ytd-banner">
+    <div>
+      <div class="label">YTD Net Commission</div>
+      <div class="amount" id="ytdAmount">$0</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">Active</div>
+      <div class="amount" id="activeCount">0</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <h2>Active Deals</h2>
+    <span class="count" id="activeCountBadge">0</span>
+  </div>
+  <div class="sort-row">
+    <select id="activeSortField" onchange="setSort()">
+      <option value="">Sort By</option>
+      <option value="date">Date</option>
+      <option value="price">Price</option>
+    </select>
+    <select id="activeSortDir" onchange="setSort()">
+      <option value="desc">Newest First</option>
+      <option value="asc">Oldest First</option>
+    </select>
+  </div>
+  <div id="activeList"></div>
+</div>
+
+<div id="viewClosed" class="view">
+  <div class="section-header">
+    <h2>Closed Deals</h2>
+    <span class="count" id="closedCountBadge">0</span>
+  </div>
+  <div class="search-wrap">
+    <input id="searchClosed" placeholder="Search by client name..." oninput="renderClosed()" />
+  </div>
+  <div class="sort-row">
+    <select id="closedSortField" onchange="setSort()">
+      <option value="">Sort By</option>
+      <option value="date">Date</option>
+      <option value="price">Price</option>
+    </select>
+    <select id="closedSortDir" onchange="setSort()">
+      <option value="desc">Newest First</option>
+      <option value="asc">Oldest First</option>
+    </select>
+  </div>
+  <div id="closedList"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-tab active" id="tabActive" onclick="switchTab('Active')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Active
+  </button>
+  <button class="nav-tab" id="tabClosed" onclick="switchTab('Closed')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+    Closed
+  </button>
+</nav>
+
+<!-- ADD/EDIT SHEET -->
+<div class="sheet-overlay" id="addSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="sheetTitle">New Deal</h2>
+
+    <div class="field">
+      <label>Client Name</label>
+      <input id="fClient" placeholder="Full name" />
+    </div>
+    <div class="field">
+      <label>Address</label>
+      <input id="fAddress" placeholder="Property address" />
+    </div>
+
+    <div class="field">
+      <label>Buyer or Seller?</label>
+      <select id="fType">
+        <option value="buyer">Buyer</option>
+        <option value="seller">Seller</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>List / Sale Price</label>
+        <input id="fPrice" placeholder="$0" oninput="formatPrice(this)" inputmode="numeric" />
+      </div>
+      <div class="field">
+        <label>Commission %</label>
+        <input id="fCommission" placeholder="3.0%" inputmode="decimal" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Co-Op Agent</label>
+        <input id="fCoop" placeholder="Name" />
+      </div>
+      <div class="field">
+        <label>Loan Officer / Type</label>
+        <input id="fLoan" placeholder="Conventional, FHA..." />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Expire / Close Date</label>
+      <input id="fDate" type="date" />
+    </div>
+
+    <div class="field">
+      <label>Other</label>
+      <input id="fOther" placeholder="Any additional info" />
+    </div>
+
+    <div class="field">
+      <label>Status</label>
+      <div class="check-group">
+        <label class="check-pill" id="pillPending">
+          <input type="checkbox" id="fPending" onchange="togglePill('pillPending',this)"> Pending
+        </label>
+        <label class="check-pill" id="pillEM">
+          <input type="checkbox" id="fEM" onchange="togglePill('pillEM',this)"> E.M.
+        </label>
+        <label class="check-pill" id="pillInspection">
+          <input type="checkbox" id="fInspection" onchange="togglePill('pillInspection',this)"> Inspection
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Card Color</label>
+      <input id="fColor" type="color" value="#C8522A" style="height:44px;padding:4px;" />
+    </div>
+
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="fNotes" placeholder="Any notes about this deal..."></textarea>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeAddSheet()">Cancel</button>
+      <button class="btn-save" onclick="saveDeal()">Save Deal</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM SHEET (generic) -->
+<div class="sheet-overlay" id="confirmSheet">
+  <div class="confirm-sheet" id="confirmSheetInner">
+    <!-- filled dynamically -->
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+// Paste your Google Apps Script Web App URL here after setup:
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwMCsgpJAkDvfv139DYTESOkPvdqKD7cpO9oT5iek95kq-5BQbkxKJ7js-N8ehOPkpS/exec";
+// ────────────────────────────────────────────────────────
+
+let deals = [];
+let editIndex = null;
+let currentTab = 'Active';
+let activeSortField = '', activeSortDir = 'desc';
+let closedSortField = '', closedSortDir = 'desc';
+let isSyncing = false;
+
+// ── SYNC ────────────────────────────────────────────────
+function setSyncStatus(status) {
+  const dot = document.getElementById('syncDot');
+  dot.className = 'sync-dot ' + status;
+}
+
+async function syncToCloud(dealsData) {
+  if (GAS_URL === "YOUR_GAS_URL_HERE") return;
+  setSyncStatus('syncing');
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', deals: dealsData })
+    });
+    setSyncStatus('synced');
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('Sync failed:', e);
+  }
+}
+
+async function loadFromCloud() {
+  if (GAS_URL === "YOUR_GAS_URL_HERE") {
+    loadLocal();
+    return;
+  }
+  setSyncStatus('syncing');
+  try {
+    const res = await fetch(GAS_URL + "?action=load");
+    const data = await res.json();
+    if (data && data.deals) {
+      deals = data.deals;
+      saveLocal();
+      setSyncStatus('synced');
+    } else {
+      loadLocal();
+    }
+  } catch(e) {
+    setSyncStatus('error');
+    loadLocal();
+  }
+  render();
+}
+
+function saveLocal() {
+  localStorage.setItem('deals_v2', JSON.stringify(deals));
+}
+
+function loadLocal() {
+  deals = JSON.parse(localStorage.getItem('deals_v2') || '[]');
+}
+
+function persistAndSync() {
+  saveLocal();
+  syncToCloud(deals);
+  render();
+}
+
+// ── SORT ────────────────────────────────────────────────
+function setSort() {
+  activeSortField = document.getElementById('activeSortField').value;
+  activeSortDir   = document.getElementById('activeSortDir').value;
+  closedSortField = document.getElementById('closedSortField').value;
+  closedSortDir   = document.getElementById('closedSortDir').value;
+  render();
+}
+
+function sortDeals(list, field, dir) {
+  if (!field) return list;
+  return [...list].sort((a, b) => {
+    let va, vb;
+    if (field === 'date') {
+      va = new Date(a.date || 0); vb = new Date(b.date || 0);
+    } else if (field === 'price') {
+      va = parseFloat((a.price||'').replace(/[^0-9]/g,''))||0;
+      vb = parseFloat((b.price||'').replace(/[^0-9]/g,''))||0;
+    }
+    return dir === 'asc' ? va - vb : vb - va;
+  });
+}
+
+// ── RENDER ──────────────────────────────────────────────
+function render() {
+  renderActive();
+  renderClosed();
+  updateYTD();
+}
+
+function updateYTD() {
+  const year = new Date().getFullYear();
+  let ytd = 0;
+  deals.filter(d => d.closed).forEach(d => {
+    if (d.netCommission && d.date) {
+      if (new Date(d.date).getFullYear() === year) {
+        ytd += parseFloat(d.netCommission.replace(/[^0-9.]/g,'')) || 0;
+      }
+    }
+  });
+  document.getElementById('ytdAmount').textContent = '$' + ytd.toLocaleString();
+  const activeCount = deals.filter(d => !d.closed).length;
+  document.getElementById('activeCount').textContent = activeCount;
+}
+
+function renderActive() {
+  const container = document.getElementById('activeList');
+  let active = deals.filter(d => !d.closed);
+  active = sortDeals(active, activeSortField, activeSortDir);
+  document.getElementById('activeCountBadge').textContent = active.length;
+
+  if (!active.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">🏡</div><p>No active deals yet.<br>Tap + to add one.</p></div>`;
+    return;
+  }
+  container.innerHTML = '';
+  active.forEach(d => {
+    const i = deals.indexOf(d);
+    container.appendChild(createCard(d, i));
+  });
+}
+
+function renderClosed() {
+  const container = document.getElementById('closedList');
+  const search = document.getElementById('searchClosed').value.toLowerCase();
+  let closed = deals.filter(d => d.closed);
+  if (search.length >= 3) {
+    closed = closed.filter(d => (d.client||'').toLowerCase().includes(search));
+  }
+  closed = sortDeals(closed, closedSortField, closedSortDir);
+  document.getElementById('closedCountBadge').textContent = closed.length;
+
+  if (!closed.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">🎉</div><p>No closed deals yet.</p></div>`;
+    return;
+  }
+  container.innerHTML = '';
+  closed.forEach(d => {
+    const i = deals.indexOf(d);
+    container.appendChild(createCard(d, i));
+  });
+}
+
+function createCard(d, i) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.dataset.index = i;
+
+  const color = d.color || '#C8522A';
+  const typeClass = d.type === 'seller' ? 'type-seller' : 'type-buyer';
+  const typeLabel = d.type === 'seller' ? 'Seller' : 'Buyer';
+
+  let html = `
+    <div class="card-accent-bar" style="background:${color}"></div>
+    <div class="card-body">
+      <div class="card-top">
+        <div class="card-client">${d.client || 'Unnamed'}</div>
+        <span class="card-type ${typeClass}">${typeLabel}</span>
+      </div>
+      <div class="card-address">${d.address || '—'}</div>
+      <div class="card-meta">
+        <div class="card-meta-item">
+          <span class="meta-label">Price</span>
+          <span class="meta-val">${d.price || '—'}</span>
+        </div>
+        <div class="card-meta-item">
+          <span class="meta-label">Commission</span>
+          <span class="meta-val">${d.commission || '—'}</span>
+        </div>
+        <div class="card-meta-item">
+          <span class="meta-label">${d.closed ? 'Closed' : 'Expires'}</span>
+          <span class="meta-val">${d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) : '—'}</span>
+        </div>
+      </div>`;
+
+  if (d.loan || d.coop) {
+    html += `<div class="card-meta">`;
+    if (d.coop) html += `<div class="card-meta-item"><span class="meta-label">Co-Op</span><span class="meta-val">${d.coop}</span></div>`;
+    if (d.loan) html += `<div class="card-meta-item"><span class="meta-label">Loan</span><span class="meta-val">${d.loan}</span></div>`;
+    html += `</div>`;
+  }
+
+  if (!d.closed) {
+    html += `<div class="status-row">`;
+    ['pending','em','inspection'].forEach(f => {
+      const labels = {pending:'Pending', em:'E.M.', inspection:'Inspection'};
+      html += `<div class="status-chip ${d[f]?'active-chip':''}" onclick="toggleStatus(${i},'${f}')">
+        <span class="dot"></span>${labels[f]}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (d.closed && d.netCommission) {
+    html += `<div class="closed-meta">
+      <div class="cm-label">Net Commission</div>
+      <div class="cm-val">${d.netCommission}</div>
+    </div>`;
+    if (d.titleCompany) {
+      html += `<div class="card-meta-item" style="margin-bottom:10px"><span class="meta-label">Title Company</span><span class="meta-val">${d.titleCompany}</span></div>`;
+    }
+  }
+
+  if (d.notes) {
+    html += `<div class="card-notes">${d.notes}</div>`;
+  }
+
+  html += `<div class="card-actions">`;
+
+  if (!d.closed) {
+    html += `<button class="card-btn primary" onclick="promptClose(${i})">Mark Closed</button>`;
+    html += `<button class="card-btn" onclick="openEdit(${i})">Edit</button>`;
+  } else if (!d.netCommission) {
+    html += `<button class="card-btn primary" onclick="promptNet(${i})">Add Net Commission</button>`;
+    html += `<button class="card-btn" onclick="openEdit(${i})">Edit</button>`;
+  } else {
+    html += `<button class="card-btn" onclick="openEdit(${i})">Edit</button>`;
+  }
+
+  html += `<button class="card-btn danger" onclick="promptDelete(${i})">Delete</button>`;
+  html += `</div></div></div>`;
+
+  div.innerHTML = html;
+  return div;
+}
+
+// ── STATUS TOGGLE ────────────────────────────────────────
+function toggleStatus(i, field) {
+  deals[i][field] = !deals[i][field];
+  persistAndSync();
+}
+
+// ── CLOSE FLOW ──────────────────────────────────────────
+let pendingCloseIndex = null;
+
+function promptClose(i) {
+  pendingCloseIndex = i;
+  showConfirm(`
+    <div class="sheet-handle"></div>
+    <h3>Mark as Closed?</h3>
+    <p>This will move the deal to your Closed Deals list.</p>
+    <div class="field">
+      <label>Title Company</label>
+      <input id="titleInput" placeholder="Title company name" />
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-save" onclick="confirmClose()">Confirm Close</button>
+    </div>
+  `);
+}
+
+function confirmClose() {
+  const title = document.getElementById('titleInput').value.trim();
+  if (!title) { document.getElementById('titleInput').style.borderColor = 'red'; return; }
+  deals[pendingCloseIndex].closed = true;
+  deals[pendingCloseIndex].titleCompany = title;
+  closeConfirm();
+  persistAndSync();
+  promptNet(pendingCloseIndex);
+}
+
+// ── NET COMMISSION ───────────────────────────────────────
+function promptNet(i) {
+  pendingCloseIndex = i;
+  showConfirm(`
+    <div class="sheet-handle"></div>
+    <h3>Net Commission</h3>
+    <p>Enter the net commission received for this deal.</p>
+    <div class="field">
+      <input id="netInput" placeholder="$0" oninput="formatPrice(this)" inputmode="numeric" />
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">Skip for Now</button>
+      <button class="btn-save" onclick="confirmNet()">Save</button>
+    </div>
+  `);
+}
+
+function confirmNet() {
+  const val = document.getElementById('netInput').value.trim();
+  if (val) {
+    deals[pendingCloseIndex].netCommission = val;
+  }
+  closeConfirm();
+  persistAndSync();
+}
+
+// ── DELETE ───────────────────────────────────────────────
+function promptDelete(i) {
+  pendingCloseIndex = i;
+  const name = deals[i].client || 'this deal';
+  showConfirm(`
+    <div class="sheet-handle"></div>
+    <h3>Delete Deal?</h3>
+    <p>This will permanently remove <strong>${name}</strong>. This cannot be undone.</p>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-save" style="background:#C0392B" onclick="confirmDelete()">Delete</button>
+    </div>
+  `);
+}
+
+function confirmDelete() {
+  deals.splice(pendingCloseIndex, 1);
+  closeConfirm();
+  persistAndSync();
+}
+
+// ── CONFIRM SHEET ────────────────────────────────────────
+function showConfirm(html) {
+  document.getElementById('confirmSheetInner').innerHTML = html;
+  document.getElementById('confirmSheet').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirmSheet').classList.remove('open');
+}
+
+// ── ADD / EDIT SHEET ─────────────────────────────────────
+function openAddSheet() {
+  editIndex = null;
+  clearForm();
+  document.getElementById('sheetTitle').textContent = 'New Deal';
+  document.getElementById('addSheet').classList.add('open');
+}
+
+function openEdit(i) {
+  editIndex = i;
+  const d = deals[i];
+  document.getElementById('fClient').value = d.client || '';
+  document.getElementById('fAddress').value = d.address || '';
+  document.getElementById('fType').value = d.type || 'buyer';
+  document.getElementById('fPrice').value = d.price || '';
+  document.getElementById('fCommission').value = d.commission || '';
+  document.getElementById('fCoop').value = d.coop || '';
+  document.getElementById('fLoan').value = d.loan || '';
+  document.getElementById('fDate').value = d.date || '';
+  document.getElementById('fOther').value = d.other || '';
+  document.getElementById('fNotes').value = d.notes || '';
+  document.getElementById('fColor').value = d.color || '#C8522A';
+
+  ['Pending','EM','Inspection'].forEach(f => {
+    const key = f.toLowerCase();
+    const cb = document.getElementById('f'+f);
+    const pill = document.getElementById('pill'+f);
+    cb.checked = !!d[key === 'em' ? 'em' : key];
+    pill.classList.toggle('checked', cb.checked);
+  });
+
+  document.getElementById('sheetTitle').textContent = 'Edit Deal';
+  document.getElementById('addSheet').classList.add('open');
+}
+
+function closeAddSheet() {
+  document.getElementById('addSheet').classList.remove('open');
+}
+
+function clearForm() {
+  ['fClient','fAddress','fPrice','fCommission','fCoop','fLoan','fDate','fOther','fNotes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('fType').value = 'buyer';
+  document.getElementById('fColor').value = '#C8522A';
+  ['Pending','EM','Inspection'].forEach(f => {
+    document.getElementById('f'+f).checked = false;
+    document.getElementById('pill'+f).classList.remove('checked');
+  });
+}
+
+function saveDeal() {
+  const d = {
+    client:     document.getElementById('fClient').value.trim(),
+    address:    document.getElementById('fAddress').value.trim(),
+    type:       document.getElementById('fType').value,
+    price:      document.getElementById('fPrice').value,
+    commission: document.getElementById('fCommission').value,
+    coop:       document.getElementById('fCoop').value.trim(),
+    loan:       document.getElementById('fLoan').value.trim(),
+    date:       document.getElementById('fDate').value,
+    other:      document.getElementById('fOther').value.trim(),
+    notes:      document.getElementById('fNotes').value.trim(),
+    color:      document.getElementById('fColor').value,
+    pending:    document.getElementById('fPending').checked,
+    em:         document.getElementById('fEM').checked,
+    inspection: document.getElementById('fInspection').checked,
+  };
+
+  if (!d.client) { document.getElementById('fClient').style.borderColor='red'; return; }
+
+  if (editIndex !== null) {
+    d.closed = deals[editIndex].closed;
+    d.titleCompany = deals[editIndex].titleCompany;
+    d.netCommission = deals[editIndex].netCommission;
+    d.netLocked = deals[editIndex].netLocked;
+    deals[editIndex] = d;
+  } else {
+    d.closed = false;
+    deals.push(d);
+  }
+
+  closeAddSheet();
+  persistAndSync();
+}
+
+// ── HELPERS ──────────────────────────────────────────────
+function formatPrice(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (!v) { el.value = ''; return; }
+  el.value = '$' + parseInt(v).toLocaleString();
+}
+
+function togglePill(pillId, cb) {
+  document.getElementById(pillId).classList.toggle('checked', cb.checked);
+}
+
+// ── TABS ─────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('viewActive').classList.toggle('active', tab === 'Active');
+  document.getElementById('viewClosed').classList.toggle('active', tab === 'Closed');
+  document.getElementById('tabActive').classList.toggle('active', tab === 'Active');
+  document.getElementById('tabClosed').classList.toggle('active', tab === 'Closed');
+}
+
+// ── INIT ─────────────────────────────────────────────────
+loadFromCloud();
+</script>
+</body>
+</html>
