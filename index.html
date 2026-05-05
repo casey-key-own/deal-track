@@ -189,6 +189,21 @@
   .status-chip.active-chip { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
   .status-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
+  /* Home warranty badge on card */
+  .warranty-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+  .warranty-buyer  { background: var(--accent2-light); color: var(--accent2); }
+  .warranty-seller { background: var(--accent-light);  color: var(--accent);  }
+  .warranty-na     { background: var(--bg);            color: var(--muted); border: 1px solid var(--border); }
+
   /* Card actions */
   .card-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
   .card-btn {
@@ -321,7 +336,7 @@
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
 
-  /* Checkbox group */
+  /* Checkbox / pill group */
   .check-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
   .check-pill {
     display: flex; align-items: center; gap: 6px;
@@ -335,6 +350,21 @@
   }
   .check-pill input { display: none; }
   .check-pill.checked { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+  /* Warranty radio pills */
+  .warranty-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .warranty-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .warranty-pill input { display: none; }
+  .warranty-pill.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 500; }
 
   /* Sheet buttons */
   .sheet-actions { display: flex; gap: 10px; margin-top: 24px; }
@@ -385,13 +415,10 @@
     vertical-align: middle;
   }
   .sync-dot.syncing { background: var(--gold); animation: pulse 1s infinite; }
-  .sync-dot.synced { background: var(--accent2); }
-  .sync-dot.error { background: #C0392B; }
+  .sync-dot.synced  { background: var(--accent2); }
+  .sync-dot.error   { background: #C0392B; }
 
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  /* Color dot in card */
-  .color-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
 
   hr.divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 20px; }
 </style>
@@ -526,6 +553,21 @@
     </div>
 
     <div class="field">
+      <label>Home Warranty</label>
+      <div class="warranty-group">
+        <label class="warranty-pill" id="pillWarrantyBuyer">
+          <input type="radio" name="warranty" id="fWarrantyBuyer" value="buyer" onchange="selectWarranty('buyer')"> Buyer Paid
+        </label>
+        <label class="warranty-pill" id="pillWarrantySeller">
+          <input type="radio" name="warranty" id="fWarrantySeller" value="seller" onchange="selectWarranty('seller')"> Seller Paid
+        </label>
+        <label class="warranty-pill" id="pillWarrantyNA">
+          <input type="radio" name="warranty" id="fWarrantyNA" value="na" onchange="selectWarranty('na')"> N/A
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
       <label>Other</label>
       <input id="fOther" placeholder="Any additional info" />
     </div>
@@ -571,7 +613,6 @@
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────
-// Paste your Google Apps Script Web App URL here after setup:
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyMgdm7WDl-738AZRV4MEYrz2QXVfrf97aC_f62w6xaI0Tx-DAcqVG0LyYW1kP5TAAM/exec";
 // ────────────────────────────────────────────────────────
 
@@ -580,12 +621,10 @@ let editIndex = null;
 let currentTab = 'Active';
 let activeSortField = '', activeSortDir = 'desc';
 let closedSortField = '', closedSortDir = 'desc';
-let isSyncing = false;
 
 // ── SYNC ────────────────────────────────────────────────
 function setSyncStatus(status) {
-  const dot = document.getElementById('syncDot');
-  dot.className = 'sync-dot ' + status;
+  document.getElementById('syncDot').className = 'sync-dot ' + status;
 }
 
 async function syncToCloud(dealsData) {
@@ -597,15 +636,11 @@ async function syncToCloud(dealsData) {
     setSyncStatus('synced');
   } catch(e) {
     setSyncStatus('error');
-    console.error('Sync failed:', e);
   }
 }
 
 async function loadFromCloud() {
-  if (GAS_URL === "YOUR_GAS_URL_HERE") {
-    loadLocal();
-    return;
-  }
+  if (GAS_URL === "YOUR_GAS_URL_HERE") { loadLocal(); render(); return; }
   setSyncStatus('syncing');
   try {
     const res = await fetch(GAS_URL + "?action=load");
@@ -624,19 +659,9 @@ async function loadFromCloud() {
   render();
 }
 
-function saveLocal() {
-  localStorage.setItem('deals_v2', JSON.stringify(deals));
-}
-
-function loadLocal() {
-  deals = JSON.parse(localStorage.getItem('deals_v2') || '[]');
-}
-
-function persistAndSync() {
-  saveLocal();
-  syncToCloud(deals);
-  render();
-}
+function saveLocal()  { localStorage.setItem('deals_v2', JSON.stringify(deals)); }
+function loadLocal()  { deals = JSON.parse(localStorage.getItem('deals_v2') || '[]'); }
+function persistAndSync() { saveLocal(); syncToCloud(deals); render(); }
 
 // ── SORT ────────────────────────────────────────────────
 function setSort() {
@@ -662,63 +687,45 @@ function sortDeals(list, field, dir) {
 }
 
 // ── RENDER ──────────────────────────────────────────────
-function render() {
-  renderActive();
-  renderClosed();
-  updateYTD();
-}
+function render() { renderActive(); renderClosed(); updateYTD(); }
 
 function updateYTD() {
   const year = new Date().getFullYear();
   let ytd = 0;
   deals.filter(d => d.closed).forEach(d => {
-    if (d.netCommission && d.date) {
-      if (new Date(d.date).getFullYear() === year) {
-        ytd += parseFloat(d.netCommission.replace(/[^0-9.]/g,'')) || 0;
-      }
+    if (d.netCommission && d.date && new Date(d.date).getFullYear() === year) {
+      ytd += parseFloat(d.netCommission.replace(/[^0-9.]/g,'')) || 0;
     }
   });
   document.getElementById('ytdAmount').textContent = '$' + ytd.toLocaleString();
-  const activeCount = deals.filter(d => !d.closed).length;
-  document.getElementById('activeCount').textContent = activeCount;
+  document.getElementById('activeCount').textContent = deals.filter(d => !d.closed).length;
 }
 
 function renderActive() {
   const container = document.getElementById('activeList');
-  let active = deals.filter(d => !d.closed);
-  active = sortDeals(active, activeSortField, activeSortDir);
+  let active = sortDeals(deals.filter(d => !d.closed), activeSortField, activeSortDir);
   document.getElementById('activeCountBadge').textContent = active.length;
-
   if (!active.length) {
     container.innerHTML = `<div class="empty"><div class="empty-icon">🏡</div><p>No active deals yet.<br>Tap + to add one.</p></div>`;
     return;
   }
   container.innerHTML = '';
-  active.forEach(d => {
-    const i = deals.indexOf(d);
-    container.appendChild(createCard(d, i));
-  });
+  active.forEach(d => container.appendChild(createCard(d, deals.indexOf(d))));
 }
 
 function renderClosed() {
   const container = document.getElementById('closedList');
   const search = document.getElementById('searchClosed').value.toLowerCase();
   let closed = deals.filter(d => d.closed);
-  if (search.length >= 3) {
-    closed = closed.filter(d => (d.client||'').toLowerCase().includes(search));
-  }
+  if (search.length >= 3) closed = closed.filter(d => (d.client||'').toLowerCase().includes(search));
   closed = sortDeals(closed, closedSortField, closedSortDir);
   document.getElementById('closedCountBadge').textContent = closed.length;
-
   if (!closed.length) {
     container.innerHTML = `<div class="empty"><div class="empty-icon">🎉</div><p>No closed deals yet.</p></div>`;
     return;
   }
   container.innerHTML = '';
-  closed.forEach(d => {
-    const i = deals.indexOf(d);
-    container.appendChild(createCard(d, i));
-  });
+  closed.forEach(d => container.appendChild(createCard(d, deals.indexOf(d))));
 }
 
 function createCard(d, i) {
@@ -726,9 +733,19 @@ function createCard(d, i) {
   div.className = 'card';
   div.dataset.index = i;
 
-  const color = d.color || '#C8522A';
-  const typeClass = d.type === 'seller' ? 'type-seller' : 'type-buyer';
-  const typeLabel = d.type === 'seller' ? 'Seller' : 'Buyer';
+  const color      = d.color || '#C8522A';
+  const typeClass  = d.type === 'seller' ? 'type-seller' : 'type-buyer';
+  const typeLabel  = d.type === 'seller' ? 'Seller' : 'Buyer';
+
+  // Home warranty badge
+  let warrantyHtml = '';
+  if (d.warranty && d.warranty !== 'na') {
+    const wClass = d.warranty === 'buyer' ? 'warranty-buyer' : 'warranty-seller';
+    const wLabel = d.warranty === 'buyer' ? '🛡 Buyer Paid Warranty' : '🛡 Seller Paid Warranty';
+    warrantyHtml = `<div class="warranty-badge ${wClass}">${wLabel}</div>`;
+  } else if (d.warranty === 'na') {
+    warrantyHtml = `<div class="warranty-badge warranty-na">🛡 No Warranty</div>`;
+  }
 
   let html = `
     <div class="card-accent-bar" style="background:${color}"></div>
@@ -760,6 +777,8 @@ function createCard(d, i) {
     html += `</div>`;
   }
 
+  html += warrantyHtml;
+
   if (!d.closed) {
     html += `<div class="status-row">`;
     ['pending','em','inspection'].forEach(f => {
@@ -781,12 +800,9 @@ function createCard(d, i) {
     }
   }
 
-  if (d.notes) {
-    html += `<div class="card-notes">${d.notes}</div>`;
-  }
+  if (d.notes) html += `<div class="card-notes">${d.notes}</div>`;
 
   html += `<div class="card-actions">`;
-
   if (!d.closed) {
     html += `<button class="card-btn primary" onclick="promptClose(${i})">Mark Closed</button>`;
     html += `<button class="card-btn" onclick="openEdit(${i})">Edit</button>`;
@@ -796,7 +812,6 @@ function createCard(d, i) {
   } else {
     html += `<button class="card-btn" onclick="openEdit(${i})">Edit</button>`;
   }
-
   html += `<button class="card-btn danger" onclick="promptDelete(${i})">Delete</button>`;
   html += `</div></div></div>`;
 
@@ -808,6 +823,43 @@ function createCard(d, i) {
 function toggleStatus(i, field) {
   deals[i][field] = !deals[i][field];
   persistAndSync();
+}
+
+// ── WARRANTY SELECTION ───────────────────────────────────
+function selectWarranty(val) {
+  ['Buyer','Seller','NA'].forEach(w => {
+    document.getElementById('pillWarranty' + w).classList.remove('selected');
+  });
+  const map = { buyer: 'Buyer', seller: 'Seller', na: 'NA' };
+  document.getElementById('pillWarranty' + map[val]).classList.add('selected');
+}
+
+function getWarrantyValue() {
+  if (document.getElementById('fWarrantyBuyer').checked)  return 'buyer';
+  if (document.getElementById('fWarrantySeller').checked) return 'seller';
+  if (document.getElementById('fWarrantyNA').checked)     return 'na';
+  return '';
+}
+
+function setWarrantyValue(val) {
+  ['buyer','seller','na'].forEach(v => {
+    const id = v === 'buyer' ? 'fWarrantyBuyer' : v === 'seller' ? 'fWarrantySeller' : 'fWarrantyNA';
+    document.getElementById(id).checked = (v === val);
+  });
+  if (val) {
+    const map = { buyer: 'Buyer', seller: 'Seller', na: 'NA' };
+    ['Buyer','Seller','NA'].forEach(w => document.getElementById('pillWarranty' + w).classList.remove('selected'));
+    if (map[val]) document.getElementById('pillWarranty' + map[val]).classList.add('selected');
+  }
+}
+
+function clearWarranty() {
+  ['fWarrantyBuyer','fWarrantySeller','fWarrantyNA'].forEach(id => {
+    document.getElementById(id).checked = false;
+  });
+  ['Buyer','Seller','NA'].forEach(w => {
+    document.getElementById('pillWarranty' + w).classList.remove('selected');
+  });
 }
 
 // ── CLOSE FLOW ──────────────────────────────────────────
@@ -840,7 +892,6 @@ function confirmClose() {
   promptNet(pendingCloseIndex);
 }
 
-// ── NET COMMISSION ───────────────────────────────────────
 function promptNet(i) {
   pendingCloseIndex = i;
   showConfirm(`
@@ -859,14 +910,11 @@ function promptNet(i) {
 
 function confirmNet() {
   const val = document.getElementById('netInput').value.trim();
-  if (val) {
-    deals[pendingCloseIndex].netCommission = val;
-  }
+  if (val) deals[pendingCloseIndex].netCommission = val;
   closeConfirm();
   persistAndSync();
 }
 
-// ── DELETE ───────────────────────────────────────────────
 function promptDelete(i) {
   pendingCloseIndex = i;
   const name = deals[i].client || 'this deal';
@@ -887,14 +935,11 @@ function confirmDelete() {
   persistAndSync();
 }
 
-// ── CONFIRM SHEET ────────────────────────────────────────
 function showConfirm(html) {
   document.getElementById('confirmSheetInner').innerHTML = html;
   document.getElementById('confirmSheet').classList.add('open');
 }
-function closeConfirm() {
-  document.getElementById('confirmSheet').classList.remove('open');
-}
+function closeConfirm() { document.getElementById('confirmSheet').classList.remove('open'); }
 
 // ── ADD / EDIT SHEET ─────────────────────────────────────
 function openAddSheet() {
@@ -907,23 +952,25 @@ function openAddSheet() {
 function openEdit(i) {
   editIndex = i;
   const d = deals[i];
-  document.getElementById('fClient').value = d.client || '';
-  document.getElementById('fAddress').value = d.address || '';
-  document.getElementById('fType').value = d.type || 'buyer';
-  document.getElementById('fPrice').value = d.price || '';
+  document.getElementById('fClient').value     = d.client     || '';
+  document.getElementById('fAddress').value    = d.address    || '';
+  document.getElementById('fType').value       = d.type       || 'buyer';
+  document.getElementById('fPrice').value      = d.price      || '';
   document.getElementById('fCommission').value = d.commission || '';
-  document.getElementById('fCoop').value = d.coop || '';
-  document.getElementById('fLoan').value = d.loan || '';
-  document.getElementById('fDate').value = d.date || '';
-  document.getElementById('fOther').value = d.other || '';
-  document.getElementById('fNotes').value = d.notes || '';
-  document.getElementById('fColor').value = d.color || '#C8522A';
+  document.getElementById('fCoop').value       = d.coop       || '';
+  document.getElementById('fLoan').value       = d.loan       || '';
+  document.getElementById('fDate').value       = d.date       || '';
+  document.getElementById('fOther').value      = d.other      || '';
+  document.getElementById('fNotes').value      = d.notes      || '';
+  document.getElementById('fColor').value      = d.color      || '#C8522A';
+
+  setWarrantyValue(d.warranty || '');
 
   ['Pending','EM','Inspection'].forEach(f => {
     const key = f.toLowerCase();
-    const cb = document.getElementById('f'+f);
-    const pill = document.getElementById('pill'+f);
-    cb.checked = !!d[key === 'em' ? 'em' : key];
+    const cb  = document.getElementById('f' + f);
+    const pill = document.getElementById('pill' + f);
+    cb.checked = !!d[key];
     pill.classList.toggle('checked', cb.checked);
   });
 
@@ -931,19 +978,18 @@ function openEdit(i) {
   document.getElementById('addSheet').classList.add('open');
 }
 
-function closeAddSheet() {
-  document.getElementById('addSheet').classList.remove('open');
-}
+function closeAddSheet() { document.getElementById('addSheet').classList.remove('open'); }
 
 function clearForm() {
   ['fClient','fAddress','fPrice','fCommission','fCoop','fLoan','fDate','fOther','fNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('fType').value = 'buyer';
+  document.getElementById('fType').value  = 'buyer';
   document.getElementById('fColor').value = '#C8522A';
+  clearWarranty();
   ['Pending','EM','Inspection'].forEach(f => {
-    document.getElementById('f'+f).checked = false;
-    document.getElementById('pill'+f).classList.remove('checked');
+    document.getElementById('f' + f).checked = false;
+    document.getElementById('pill' + f).classList.remove('checked');
   });
 }
 
@@ -960,18 +1006,19 @@ function saveDeal() {
     other:      document.getElementById('fOther').value.trim(),
     notes:      document.getElementById('fNotes').value.trim(),
     color:      document.getElementById('fColor').value,
+    warranty:   getWarrantyValue(),
     pending:    document.getElementById('fPending').checked,
     em:         document.getElementById('fEM').checked,
     inspection: document.getElementById('fInspection').checked,
   };
 
-  if (!d.client) { document.getElementById('fClient').style.borderColor='red'; return; }
+  if (!d.client) { document.getElementById('fClient').style.borderColor = 'red'; return; }
 
   if (editIndex !== null) {
-    d.closed = deals[editIndex].closed;
-    d.titleCompany = deals[editIndex].titleCompany;
+    d.closed        = deals[editIndex].closed;
+    d.titleCompany  = deals[editIndex].titleCompany;
     d.netCommission = deals[editIndex].netCommission;
-    d.netLocked = deals[editIndex].netLocked;
+    d.netLocked     = deals[editIndex].netLocked;
     deals[editIndex] = d;
   } else {
     d.closed = false;
@@ -996,10 +1043,10 @@ function togglePill(pillId, cb) {
 // ── TABS ─────────────────────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
-  document.getElementById('viewActive').classList.toggle('active', tab === 'Active');
-  document.getElementById('viewClosed').classList.toggle('active', tab === 'Closed');
-  document.getElementById('tabActive').classList.toggle('active', tab === 'Active');
-  document.getElementById('tabClosed').classList.toggle('active', tab === 'Closed');
+  document.getElementById('viewActive').classList.toggle('active',  tab === 'Active');
+  document.getElementById('viewClosed').classList.toggle('active',  tab === 'Closed');
+  document.getElementById('tabActive').classList.toggle('active',   tab === 'Active');
+  document.getElementById('tabClosed').classList.toggle('active',   tab === 'Closed');
 }
 
 // ── INIT ─────────────────────────────────────────────────
